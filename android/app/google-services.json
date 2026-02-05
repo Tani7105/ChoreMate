@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "692493273607",
+    "project_id": "choremate-82c08",
+    "storage_bucket": "choremate-82c08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692493273607:android:31ef7c70efc415e57738a2",
+        "android_client_info": {
+          "package_name": "com.example.choremate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_T9ijzMy0jV_fh9A2BftnoZu_Zsl2ucw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
