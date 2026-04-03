@@ -1,0 +1,121 @@
+{
+  "app": "Microsoft Word",
+  "app_id": "com.microsoft.office.word",
+  "period": "2026-01-12 to 2026-03-08",
+  "total_reviews": 50,
+  "label_distribution": {
+    "Feature Request": 22,
+    "Bug": 22,
+    "Other": 6
+  },
+  "avg_rating_by_label": {
+    "Feature Request": 3.36,
+    "Bug": 1.64,
+    "Other": 2.67
+  },
+  "classifier": "Weighted keyword heuristic (BUG_W + FEAT_W dictionaries)",
+  "well_classified_bugs": [
+    {
+      "review": "Since the last update spell check is completely broken. Doesn't flag any errors at all.",
+      "rating": 2,
+      "bug_score": 5,
+      "feat_score": 0,
+      "confidence": "high"
+    },
+    {
+      "review": "Export to PDF crashes halfway through on large documents. Never used to have this problem.",
+      "rating": 2,
+      "bug_score": 7,
+      "feat_score": 0,
+      "confidence": "very high"
+    },
+    {
+      "review": "App drains 40% of battery in 30 minutes when it's just sitting in the background. Clear bug.",
+      "rating": 2,
+      "bug_score": 3,
+      "feat_score": 0,
+      "confidence": "high"
+    },
+    {
+      "review": "Not sure if this is a bug or by design but my headers don't print correctly on some printers.",
+      "rating": 2,
+      "bug_score": 3,
+      "feat_score": 0,
+      "confidence": "high"
+    }
+  ],
+  "well_classified_features": [
+    {
+      "review": "Would be nice to have a translation feature built in. Google Docs has this and it's really useful.",
+      "rating": 3,
+      "bug_score": 0,
+      "feat_score": 5,
+      "confidence": "high"
+    },
+    {
+      "review": "It would be great if Word had a focus mode hiding the toolbar so you can just write, like Notion.",
+      "rating": 3,
+      "bug_score": 0,
+      "feat_score": 3,
+      "confidence": "high"
+    },
+    {
+      "review": "I would love a feature showing estimated reading time for a document. Very useful for presentations.",
+      "rating": 4,
+      "bug_score": 0,
+      "feat_score": 5,
+      "confidence": "high"
+    },
+    {
+      "review": "Please add real-time collaboration with voice chat built in. Makes remote work so much easier.",
+      "rating": 4,
+      "bug_score": 0,
+      "feat_score": 3,
+      "confidence": "high"
+    }
+  ],
+  "poorly_classified": [
+    {
+      "review": "Comments panel disappeared after the update and I can't get it back no matter what I try.",
+      "pred_label": "Bug",
+      "bug_score": 2,
+      "feat_score": 0,
+      "confidence": "medium"
+    },
+    {
+      "review": "Undo button stopped working after today's update. Lost a whole section I can't recover.",
+      "pred_label": "Bug",
+      "bug_score": 2,
+      "feat_score": 0,
+      "confidence": "medium"
+    },
+    {
+      "review": "Formatting gets messed up switching between phone and tablet. Headings resize and margins shift.",
+      "pred_label": "Other",
+      "bug_score": 0,
+      "feat_score": 0,
+      "confidence": "low"
+    },
+    {
+      "review": "The layout changed in the update and I can't find page layout settings anymore. Very confusing.",
+      "pred_label": "Other",
+      "bug_score": 0,
+      "feat_score": 0,
+      "confidence": "low"
+    },
+    {
+      "review": "This app feels much slower than it used to. Not sure if my phone or the app. Maybe needs optimization?",
+      "pred_label": "Bug",
+      "bug_score": 1,
+      "feat_score": 0,
+      "confidence": "medium"
+    },
+    {
+      "review": "Images keep moving around randomly. Layout doesn't stay fixed no matter what I try.",
+      "pred_label": "Bug",
+      "bug_score": 1,
+      "feat_score": 0,
+      "confidence": "medium"
+    }
+  ]
+}
