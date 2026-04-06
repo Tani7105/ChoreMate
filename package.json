@@ -1,0 +1,28 @@
+{
+  "name": "choremate",
+  "version": "1.0.0",
+  "description": "A new Flutter project.",
+  "main": "test.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tani7105/ChoreMate.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Tani7105/ChoreMate/issues"
+  },
+  "homepage": "https://github.com/Tani7105/ChoreMate#readme",
+  "dependencies": {
+    "firebase": "^12.11.0"
+  }
+}
