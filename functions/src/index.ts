@@ -1,32 +1,124 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import * as admin from "firebase-admin";
 
-import {setGlobalOptions} from "firebase-functions";
-import {onRequest} from "firebase-functions/https";
-import * as logger from "firebase-functions/logger";
+admin.initializeApp();
+const db = admin.firestore();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+export const createHouse = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+  const { name, rules } = request.data;
+  if (!name || typeof name !== "string") {
+    throw new HttpsError("invalid-argument", "House name is required");
+  }
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  const houseRef = db.collection("houses").doc();
+  const batch = db.batch();
+
+  batch.set(houseRef, {
+    name: name,
+    joinCode: joinCode,
+    rules: rules || "",
+    createdBy: request.auth.uid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  batch.set(houseRef.collection("members").doc(request.auth.uid), {
+    role: "rep",
+    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  batch.update(db.collection("users").doc(request.auth.uid), {
+    houseIds: admin.firestore.FieldValue.arrayUnion(houseRef.id),
+  });
+
+  await batch.commit();
+
+  return { houseId: houseRef.id, joinCode: joinCode };
+});
+
+export const joinHouse = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { joinCode } = request.data;
+  if (!joinCode || typeof joinCode !== "string") {
+    throw new HttpsError("invalid-argument", "Join code is required");
+  }
+
+  const snapshot = await db
+    .collection("houses")
+    .where("joinCode", "==", joinCode.toUpperCase())
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    throw new HttpsError("not-found", "Invalid join code");
+  }
+
+  const houseDoc = snapshot.docs[0];
+  const houseId = houseDoc.id;
+
+  const memberDoc = await houseDoc.ref
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (memberDoc.exists) {
+    throw new HttpsError("already-exists", "Already a member of this house");
+  }
+
+  const batch = db.batch();
+
+  batch.set(houseDoc.ref.collection("members").doc(request.auth.uid), {
+    role: "member",
+    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  batch.update(db.collection("users").doc(request.auth.uid), {
+    houseIds: admin.firestore.FieldValue.arrayUnion(houseId),
+  });
+
+  await batch.commit();
+
+  return { houseId: houseId, houseName: houseDoc.data()?.name };
+});
+
+export const leaveHouse = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId } = request.data;
+  if (!houseId || typeof houseId !== "string") {
+    throw new HttpsError("invalid-argument", "House ID is required");
+  }
+
+  const memberRef = db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid);
+
+  const memberDoc = await memberRef.get();
+  if (!memberDoc.exists) {
+    throw new HttpsError("not-found", "Not a member of this house");
+  }
+
+  const batch = db.batch();
+
+  batch.delete(memberRef);
+
+  batch.update(db.collection("users").doc(request.auth.uid), {
+    houseIds: admin.firestore.FieldValue.arrayRemove(houseId),
+  });
+
+  await batch.commit();
+
+  return { success: true };
+});

@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "choremate-82c08"
-  }
+    "default": "choremate-82c08",
+    "dev": "choremate-82c08",
+    "prod": "choremate-82c08"
+  },
+  "targets": {},
+  "etags": {}
 }

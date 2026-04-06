@@ -1,19 +1,62 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 3, 7);
+    // Helper function — reuse this everywhere
+    function isMember(houseId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/houses/$(houseId)/members/$(request.auth.uid));
+    }
+
+    function isRep(houseId) {
+      return isMember(houseId)
+        && get(/databases/$(database)/documents/houses/$(houseId)/members/$(request.auth.uid)).data.role == 'rep';
+    }
+
+    // USERS
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // HOUSES
+    match /houses/{houseId} {
+      allow read: if isMember(houseId);
+      allow create: if request.auth != null;
+      allow update: if isRep(houseId);
+      allow delete: if false;
+    }
+
+    // MEMBERS subcollection
+    match /houses/{houseId}/members/{memberId} {
+      allow read: if isMember(houseId);
+      allow create: if false; // handled by Cloud Function (join code)
+      allow update: if isRep(houseId);
+      allow delete: if isRep(houseId) || request.auth.uid == memberId;
+    }
+
+    // CHORES
+    match /houses/{houseId}/chores/{choreId} {
+      allow read: if isMember(houseId);
+      allow create: if isMember(houseId);
+      allow update: if isMember(houseId);
+      allow delete: if isRep(houseId);
+    }
+
+    // EVENTS
+    match /houses/{houseId}/events/{eventId} {
+      allow read: if isMember(houseId);
+      allow create: if isMember(houseId);
+      allow update: if isMember(houseId);
+      allow delete: if isRep(houseId);
+    }
+
+    // CONTACTS (shared directory)
+    match /houses/{houseId}/contacts/{contactId} {
+      allow read: if isMember(houseId);
+      allow write: if isRep(houseId);
     }
   }
 }
