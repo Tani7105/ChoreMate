@@ -10,7 +10,12 @@ const db = admin.firestore();
 // HOUSE FUNCTIONS
 // ============================================================
 
-// CREATE HOUSE — generates join code, makes creator the rep
+/*
+createHouse
+Allows authenticated user to create a new house. Generates a 6-character
+join code, saves the house to Firestore, makes the creator 'rep', and adds
+house ID to the user's profile.
+*/
 export const createHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -56,7 +61,11 @@ export const createHouse = onCall(async (request) => {
   }
 });
 
-// JOIN HOUSE — validates code, adds user as member
+/*
+joinHouse
+Takes a code, looks up the matching house, checks if the user is already
+a member, and if not adds them as a 'member'.
+*/
 export const joinHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -113,7 +122,10 @@ export const joinHouse = onCall(async (request) => {
   }
 });
 
-// LEAVE HOUSE — removes member, cleans up
+/*
+leaveHouse
+Deletes the member document and removes the house ID from the user's record.
+*/
 export const leaveHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -160,7 +172,11 @@ export const leaveHouse = onCall(async (request) => {
 // CHORE FUNCTIONS
 // ============================================================
 
-// CREATE CHORE
+/*
+createChore
+Lets any 'member' of a house create a chore with a name, assignee,
+due date, and optional reccurrence (daily, weekly, biweekly, or monthly)
+*/
 export const createChore = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -208,7 +224,10 @@ export const createChore = onCall(async (request) => {
   }
 });
 
-// COMPLETE CHORE
+/*
+completeChore
+Marks a chore as done, recording who completed it and when.
+*/
 export const completeChore = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -257,7 +276,11 @@ export const completeChore = onCall(async (request) => {
   }
 });
 
-// GENERATE RECURRING CHORES — runs every day at midnight
+/*
+generateRecurringChores
+Fires at midnight every day, scans the household for completed chorse that have
+a recurrence set, calculates the next due date, creates a new uncomplete chore
+*/
 export const generateRecurringChores = onSchedule(
   "every day 00:00",
   async () => {
@@ -328,7 +351,11 @@ export const generateRecurringChores = onSchedule(
   }
 );
 
-// SEND CHORE REMINDERS — runs every morning at 8am
+/*
+sendChoreReminders
+Runs at 8am daily, finds all incomplete chores for the day, sends a push notification
+via FCM to the assigned user's device.
+*/
 export const sendChoreReminders = onSchedule("every day 08:00", async () => {
   try {
     const today = new Date();
