@@ -10,12 +10,7 @@ const db = admin.firestore();
 // HOUSE FUNCTIONS
 // ============================================================
 
-/*
-createHouse
-Allows authenticated user to create a new house. Generates a 6-character
-join code, saves the house to Firestore, makes the creator 'rep', and adds
-house ID to the user's profile.
-*/
+// CREATE HOUSE — generates join code, makes creator the rep
 export const createHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -53,11 +48,7 @@ export const createHouse = onCall(async (request) => {
   return { houseId: houseRef.id, joinCode: joinCode };
 });
 
-/*
-joinHouse
-Takes a code, looks up the matching house, checks if the user is already
-a member, and if not adds them as a 'member'.
-*/
+// JOIN HOUSE — validates code, adds user as member
 export const joinHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -106,10 +97,7 @@ export const joinHouse = onCall(async (request) => {
   return { houseId: houseId, houseName: houseDoc.data()?.name };
 });
 
-/*
-leaveHouse
-Deletes the member document and removes the house ID from the user's record.
-*/
+// LEAVE HOUSE — removes member, cleans up
 export const leaveHouse = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -148,11 +136,7 @@ export const leaveHouse = onCall(async (request) => {
 // CHORE FUNCTIONS
 // ============================================================
 
-/*
-createChore
-Lets any 'member' of a house create a chore with a name, assignee,
-due date, and optional reccurrence (daily, weekly, biweekly, or monthly)
-*/
+// CREATE CHORE
 export const createChore = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -194,10 +178,7 @@ export const createChore = onCall(async (request) => {
   return { choreId: choreRef.id };
 });
 
-/*
-completeChore
-Marks a chore as done, recording who completed it and when.
-*/
+// COMPLETE CHORE
 export const completeChore = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -240,11 +221,7 @@ export const completeChore = onCall(async (request) => {
   return { success: true };
 });
 
-/*
-generateRecurringChores
-Fires at midnight every day, scans the household for completed chorse that have
-a recurrence set, calculates the next due date, creates a new uncomplete chore
-*/
+// GENERATE RECURRING CHORES — runs every day at midnight
 export const generateRecurringChores = onSchedule(
   "every day 00:00",
   async () => {
@@ -311,11 +288,7 @@ export const generateRecurringChores = onSchedule(
   }
 );
 
-/*
-sendChoreReminders
-Runs at 8am daily, finds all incomplete chores for the day, sends a push notification
-via FCM to the assigned user's device.
-*/
+// SEND CHORE REMINDERS — runs every morning at 8am
 export const sendChoreReminders = onSchedule("every day 08:00", async () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -534,4 +507,291 @@ export const getUpcomingEvents = onCall(async (request) => {
   }));
 
   return { events: events };
+});
+
+// ============================================================
+// HOUSE INFO FUNCTIONS
+// ============================================================
+
+// UPDATE HOUSE RULES — rep only
+export const updateHouseRules = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId, rules } = request.data;
+
+  if (!houseId || rules === undefined) {
+    throw new HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  const memberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!memberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const memberData = memberDoc.data();
+  if (memberData?.role !== "rep") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the house rep can update rules"
+    );
+  }
+
+  await db.collection("houses").doc(houseId).update({
+    rules: rules,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  return { success: true };
+});
+
+// GET HOUSE INFO — returns house details and member list
+export const getHouseInfo = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId } = request.data;
+
+  if (!houseId) {
+    throw new HttpsError("invalid-argument", "House ID is required");
+  }
+
+  const currentMemberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!currentMemberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const houseDoc = await db.collection("houses").doc(houseId).get();
+  if (!houseDoc.exists) {
+    throw new HttpsError("not-found", "House not found");
+  }
+
+  const membersSnapshot = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .get();
+
+  const members = [];
+  for (const memberDoc of membersSnapshot.docs) {
+    const userDoc = await db.collection("users").doc(memberDoc.id).get();
+    const userData = userDoc.data();
+    members.push({
+      uid: memberDoc.id,
+      role: memberDoc.data().role,
+      displayName: userData?.displayName || "Unknown",
+      email: userData?.email || "",
+    });
+  }
+
+  const houseData = houseDoc.data();
+  return {
+    name: houseData?.name,
+    rules: houseData?.rules,
+    joinCode: houseData?.joinCode,
+    members: members,
+  };
+});
+
+// ============================================================
+// CONTACTS FUNCTIONS
+// ============================================================
+
+// ADD CONTACT — rep only
+export const addContact = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId, name, phone, label } = request.data;
+
+  if (!houseId || !name || !phone) {
+    throw new HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  const memberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!memberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const memberData = memberDoc.data();
+  if (memberData?.role !== "rep") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the house rep can add contacts"
+    );
+  }
+
+  const contactRef = db
+    .collection("houses")
+    .doc(houseId)
+    .collection("contacts")
+    .doc();
+
+  await contactRef.set({
+    name: name,
+    phone: phone,
+    label: label || "",
+    createdBy: request.auth.uid,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { contactId: contactRef.id };
+});
+
+// UPDATE CONTACT — rep only
+export const updateContact = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId, contactId, name, phone, label } = request.data;
+
+  if (!houseId || !contactId) {
+    throw new HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  const memberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!memberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const memberData = memberDoc.data();
+  if (memberData?.role !== "rep") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the house rep can update contacts"
+    );
+  }
+
+  const contactRef = db
+    .collection("houses")
+    .doc(houseId)
+    .collection("contacts")
+    .doc(contactId);
+
+  const contactDoc = await contactRef.get();
+  if (!contactDoc.exists) {
+    throw new HttpsError("not-found", "Contact not found");
+  }
+
+  const updates: Record<string, any> = {};
+  if (name !== undefined) updates.name = name;
+  if (phone !== undefined) updates.phone = phone;
+  if (label !== undefined) updates.label = label;
+  updates.updatedAt = FieldValue.serverTimestamp();
+
+  await contactRef.update(updates);
+
+  return { success: true };
+});
+
+// DELETE CONTACT — rep only
+export const deleteContact = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId, contactId } = request.data;
+
+  if (!houseId || !contactId) {
+    throw new HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  const memberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!memberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const memberData = memberDoc.data();
+  if (memberData?.role !== "rep") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the house rep can delete contacts"
+    );
+  }
+
+  const contactRef = db
+    .collection("houses")
+    .doc(houseId)
+    .collection("contacts")
+    .doc(contactId);
+
+  const contactDoc = await contactRef.get();
+  if (!contactDoc.exists) {
+    throw new HttpsError("not-found", "Contact not found");
+  }
+
+  await contactRef.delete();
+
+  return { success: true };
+});
+
+// GET CONTACTS — any member can view
+export const getContacts = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in");
+  }
+
+  const { houseId } = request.data;
+
+  if (!houseId) {
+    throw new HttpsError("invalid-argument", "House ID is required");
+  }
+
+  const memberDoc = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("members")
+    .doc(request.auth.uid)
+    .get();
+
+  if (!memberDoc.exists) {
+    throw new HttpsError("permission-denied", "Not a member of this house");
+  }
+
+  const contactsSnapshot = await db
+    .collection("houses")
+    .doc(houseId)
+    .collection("contacts")
+    .get();
+
+  const contacts = contactsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  return { contacts: contacts };
 });

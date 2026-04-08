@@ -36,7 +36,7 @@ async function runTests() {
   console.log("Signed in as:", userCred.user.uid);
 
   // Test 1: Create a house
-  console.log("\n--- Creating house ---");
+  console.log("\n--- Test 1: Creating house ---");
   const createHouse = httpsCallable(functions, "createHouse");
   const houseResult = await createHouse({
     name: "Test House",
@@ -48,7 +48,7 @@ async function runTests() {
   const joinCode = houseResult.data.joinCode;
 
   // Test 2: Create a chore
-  console.log("\n--- Creating chore ---");
+  console.log("\n--- Test 2: Creating chore ---");
   const createChore = httpsCallable(functions, "createChore");
   const choreResult = await createChore({
     houseId: houseId,
@@ -60,7 +60,7 @@ async function runTests() {
   console.log("Chore created:", choreResult.data);
 
   // Test 3: Complete the chore
-  console.log("\n--- Completing chore ---");
+  console.log("\n--- Test 3: Completing chore ---");
   const completeChore = httpsCallable(functions, "completeChore");
   const completeResult = await completeChore({
     houseId: houseId,
@@ -69,7 +69,7 @@ async function runTests() {
   console.log("Chore completed:", completeResult.data);
 
   // Test 4: Create an event
-  console.log("\n--- Creating event ---");
+  console.log("\n--- Test 4: Creating event ---");
   const createEvent = httpsCallable(functions, "createEvent");
   const eventResult = await createEvent({
     houseId: houseId,
@@ -80,7 +80,7 @@ async function runTests() {
   console.log("Event created:", eventResult.data);
 
   // Test 5: Update the event
-  console.log("\n--- Updating event ---");
+  console.log("\n--- Test 5: Updating event ---");
   const updateEvent = httpsCallable(functions, "updateEvent");
   const updateResult = await updateEvent({
     houseId: houseId,
@@ -90,13 +90,13 @@ async function runTests() {
   console.log("Event updated:", updateResult.data);
 
   // Test 6: Get upcoming events
-  console.log("\n--- Getting upcoming events ---");
+  console.log("\n--- Test 6: Getting upcoming events ---");
   const getUpcomingEvents = httpsCallable(functions, "getUpcomingEvents");
   const eventsResult = await getUpcomingEvents({ houseId: houseId });
   console.log("Upcoming events:", eventsResult.data);
 
-  // Test 7: Delete event (works because creator is rep)
-  console.log("\n--- Deleting event ---");
+  // Test 7: Delete event
+  console.log("\n--- Test 7: Deleting event ---");
   const deleteEvent = httpsCallable(functions, "deleteEvent");
   const deleteResult = await deleteEvent({
     houseId: houseId,
@@ -104,19 +104,71 @@ async function runTests() {
   });
   console.log("Event deleted:", deleteResult.data);
 
-  // Test 8: Leave the house
-  console.log("\n--- Leaving house ---");
+  // Test 8: Update house rules
+  console.log("\n--- Test 8: Updating house rules ---");
+  const updateHouseRules = httpsCallable(functions, "updateHouseRules");
+  const rulesResult = await updateHouseRules({
+    houseId: houseId,
+    rules:
+      "1. No shoes inside\n2. Quiet hours after 10pm\n3. Clean up after yourself",
+  });
+  console.log("Rules updated:", rulesResult.data);
+
+  // Test 9: Get house info
+  console.log("\n--- Test 9: Getting house info ---");
+  const getHouseInfo = httpsCallable(functions, "getHouseInfo");
+  const houseInfo = await getHouseInfo({ houseId: houseId });
+  console.log("House info:", houseInfo.data);
+
+  // Test 10: Add a contact
+  console.log("\n--- Test 10: Adding contact ---");
+  const addContact = httpsCallable(functions, "addContact");
+  const contactResult = await addContact({
+    houseId: houseId,
+    name: "Bob the Plumber",
+    phone: "555-123-4567",
+    label: "plumber",
+  });
+  console.log("Contact added:", contactResult.data);
+
+  // Test 11: Update the contact
+  console.log("\n--- Test 11: Updating contact ---");
+  const updateContact = httpsCallable(functions, "updateContact");
+  const updateContactResult = await updateContact({
+    houseId: houseId,
+    contactId: contactResult.data.contactId,
+    phone: "555-999-8888",
+  });
+  console.log("Contact updated:", updateContactResult.data);
+
+  // Test 12: Get all contacts
+  console.log("\n--- Test 12: Getting contacts ---");
+  const getContacts = httpsCallable(functions, "getContacts");
+  const contactsResult = await getContacts({ houseId: houseId });
+  console.log("Contacts:", contactsResult.data);
+
+  // Test 13: Delete contact
+  console.log("\n--- Test 13: Deleting contact ---");
+  const deleteContact = httpsCallable(functions, "deleteContact");
+  const deleteContactResult = await deleteContact({
+    houseId: houseId,
+    contactId: contactResult.data.contactId,
+  });
+  console.log("Contact deleted:", deleteContactResult.data);
+
+  // Test 14: Leave the house
+  console.log("\n--- Test 14: Leaving house ---");
   const leaveHouse = httpsCallable(functions, "leaveHouse");
   const leaveResult = await leaveHouse({ houseId: houseId });
   console.log("Left house:", leaveResult.data);
 
-  // Test 9: Join back with code
-  console.log("\n--- Joining with code ---");
+  // Test 15: Join back with code
+  console.log("\n--- Test 15: Joining with code ---");
   const joinHouse = httpsCallable(functions, "joinHouse");
   const joinResult = await joinHouse({ joinCode: joinCode });
   console.log("Joined house:", joinResult.data);
 
-  console.log("\n✅ All tests passed!");
+  console.log("\n✅ All 15 tests passed!");
   process.exit(0);
 }
 
