@@ -355,7 +355,10 @@ export const sendChoreReminders = onSchedule("every day 08:00", async () => {
 // EVENT FUNCTIONS
 // ============================================================
 
-// CREATE EVENT
+/*
+createEvent
+Lets members create events with a title, description, and date range.
+*/
 export const createEvent = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -396,7 +399,10 @@ export const createEvent = onCall(async (request) => {
   return { eventId: eventRef.id };
 });
 
-// UPDATE EVENT
+/*
+updateEvent
+Allows updating event details.
+*/
 export const updateEvent = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -443,7 +449,10 @@ export const updateEvent = onCall(async (request) => {
   return { success: true };
 });
 
-// DELETE EVENT — rep only
+/*
+deleteEvent
+Allows the rep to delete events.
+*/
 export const deleteEvent = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -490,7 +499,10 @@ export const deleteEvent = onCall(async (request) => {
   return { success: true };
 });
 
-// GET UPCOMING EVENTS — returns events from today onward
+/*
+getUpcomingEvents
+Retrieves events from the current date onward.
+*/
 export const getUpcomingEvents = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -540,7 +552,10 @@ export const getUpcomingEvents = onCall(async (request) => {
 // HOUSE INFO FUNCTIONS
 // ============================================================
 
-// UPDATE HOUSE RULES — rep only
+/*
+updateHouseRules
+Rep-only rules updates for the house
+*/
 export const updateHouseRules = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -579,7 +594,10 @@ export const updateHouseRules = onCall(async (request) => {
   return { success: true };
 });
 
-// GET HOUSE INFO — returns house details and member list
+/*
+getHouseInfo
+Returns house details and member list
+*/
 export const getHouseInfo = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -638,7 +656,10 @@ export const getHouseInfo = onCall(async (request) => {
 // CONTACTS FUNCTIONS
 // ============================================================
 
-// ADD CONTACT — rep only
+/*
+addContact
+Rep-only contact creation for the house
+*/
 export const addContact = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -686,7 +707,10 @@ export const addContact = onCall(async (request) => {
   return { contactId: contactRef.id };
 });
 
-// UPDATE CONTACT — rep only
+/*
+updateContact
+Rep-only contact updater for the house
+*/
 export const updateContact = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -739,7 +763,10 @@ export const updateContact = onCall(async (request) => {
   return { success: true };
 });
 
-// DELETE CONTACT — rep only
+/*
+deleteContact
+Rep-only deletion for the house
+*/
 export const deleteContact = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
@@ -786,7 +813,10 @@ export const deleteContact = onCall(async (request) => {
   return { success: true };
 });
 
-// GET CONTACTS — any member can view
+/*
+sendChoreReminders
+Allows any member of the house to view all house contacts.
+*/
 export const getContacts = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in");
