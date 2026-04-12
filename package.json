@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/Tani7105/ChoreMate#readme",
   "dependencies": {
-    "firebase": "^12.11.0"
+    "firebase": "^12.11.0",
+    "firebase-admin": "^13.7.0"
   }
 }
