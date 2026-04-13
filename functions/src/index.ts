@@ -97,9 +97,13 @@ export const joinHouse = onCall(async (request) => {
     joinedAt: FieldValue.serverTimestamp(),
   });
 
-  batch.update(db.collection("users").doc(request.auth.uid), {
-    houseIds: FieldValue.arrayUnion(houseId),
-  });
+  batch.set(
+    db.collection("users").doc(request.auth.uid),
+    {
+      houseIds: FieldValue.arrayUnion(houseId),
+    },
+    { merge: true }
+  );
 
   await batch.commit();
 
@@ -135,9 +139,13 @@ export const leaveHouse = onCall(async (request) => {
 
   batch.delete(memberRef);
 
-  batch.update(db.collection("users").doc(request.auth.uid), {
-    houseIds: FieldValue.arrayRemove(houseId),
-  });
+  batch.set(
+    db.collection("users").doc(request.auth.uid),
+    {
+      houseIds: FieldValue.arrayUnion(houseId),
+    },
+    { merge: true }
+  );
 
   await batch.commit();
 
