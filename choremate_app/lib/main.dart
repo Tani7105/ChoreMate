@@ -9,14 +9,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  const bool useEmulator = true;
-  if (useEmulator) {
-    FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
-    FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
-    FirebaseFunctions.instance.useFunctionsEmulator('127.0.0.1', 5001);
-  }
-
+  // Using real Firebase — no emulators needed
   runApp(const ChoreMateApp());
 }
 
@@ -214,6 +207,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       isLoading = true;
       error = null;
     });
+
     try {
       final userCred = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
@@ -423,6 +417,7 @@ class HouseSelectionScreen extends StatelessWidget {
 // ============================================================
 class CreateHouseScreen extends StatefulWidget {
   const CreateHouseScreen({super.key});
+
   @override
   State<CreateHouseScreen> createState() => _CreateHouseScreenState();
 }
@@ -449,13 +444,13 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
             'name': nameController.text.trim(),
             'rules': rulesController.text.trim(),
           });
-      final data = result.data as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(result.data as Map);
       final joinCode = data['joinCode'] as String;
       if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (ctx) => AlertDialog(
           title: const Text('House Created!'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -487,7 +482,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
                       icon: const Icon(Icons.copy),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: joinCode));
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(ctx).showSnackBar(
                           const SnackBar(content: Text('Code copied!')),
                         );
                       },
@@ -500,7 +495,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
                 Navigator.of(context).pop();
               },
               child: const Text('Done'),
@@ -576,6 +571,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
 // ============================================================
 class JoinHouseScreen extends StatefulWidget {
   const JoinHouseScreen({super.key});
+
   @override
   State<JoinHouseScreen> createState() => _JoinHouseScreenState();
 }
@@ -598,7 +594,7 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
       final result = await FirebaseFunctions.instance
           .httpsCallable('joinHouse')
           .call({'joinCode': codeController.text.trim()});
-      final data = result.data as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(result.data as Map);
       final houseName = data['houseName'] as String;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -607,10 +603,11 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
       Navigator.of(context).pop();
     } catch (e) {
       String message = e.toString();
-      if (message.contains('not-found'))
+      if (message.contains('not-found')) {
         message = 'Invalid join code. Please check and try again.';
-      else if (message.contains('already-exists'))
+      } else if (message.contains('already-exists')) {
         message = 'You are already a member of this house.';
+      }
       setState(() => error = message);
     } finally {
       setState(() => isLoading = false);
@@ -624,7 +621,6 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
             Icon(
@@ -691,6 +687,7 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
 class HomeScreen extends StatefulWidget {
   final String houseId;
   const HomeScreen({super.key, required this.houseId});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -979,6 +976,7 @@ class _ChoreCard extends StatelessWidget {
 class CreateChoreScreen extends StatefulWidget {
   final String houseId;
   const CreateChoreScreen({super.key, required this.houseId});
+
   @override
   State<CreateChoreScreen> createState() => _CreateChoreScreenState();
 }
@@ -1195,8 +1193,6 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
 
 // ============================================================
 // EVENTS TAB
-// Shows upcoming events in real-time from Firestore.
-// Users can create new events and delete them (rep only).
 // ============================================================
 class EventsTab extends StatelessWidget {
   final String houseId;
@@ -1239,28 +1235,23 @@ class EventsTab extends StatelessWidget {
               ),
             );
           }
-
-          // Split into upcoming and past
           final now = DateTime.now();
           final upcoming = docs.where((d) {
             final data = d.data() as Map<String, dynamic>;
-            if (data['startDate'] is Timestamp) {
+            if (data['startDate'] is Timestamp)
               return (data['startDate'] as Timestamp).toDate().isAfter(
                 now.subtract(const Duration(days: 1)),
               );
-            }
             return true;
           }).toList();
           final past = docs.where((d) {
             final data = d.data() as Map<String, dynamic>;
-            if (data['startDate'] is Timestamp) {
+            if (data['startDate'] is Timestamp)
               return (data['startDate'] as Timestamp).toDate().isBefore(
                 now.subtract(const Duration(days: 1)),
               );
-            }
             return false;
           }).toList();
-
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -1331,12 +1322,10 @@ class _EventCard extends StatelessWidget {
     final title = data['title'] as String;
     final description = data['description'] as String? ?? '';
     final createdBy = data['createdBy'] as String? ?? '';
-
     DateTime? startDate;
     if (data['startDate'] is Timestamp)
       startDate = (data['startDate'] as Timestamp).toDate();
 
-    // Format date nicely
     String dateStr = '';
     if (startDate != null) {
       final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1365,8 +1354,6 @@ class _EventCard extends StatelessWidget {
         dateStr += ' at $hour:$minute $amPm';
       }
     }
-
-    // Check if event is today
     final isToday =
         startDate != null &&
         startDate.year == DateTime.now().year &&
@@ -1383,7 +1370,6 @@ class _EventCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Date badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1435,7 +1421,6 @@ class _EventCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Title and details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1508,12 +1493,10 @@ class _EventCard extends StatelessWidget {
                 ),
               ),
             ],
-            // Delete button row
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Created by
                 FutureBuilder<DocumentSnapshot>(
                   future: FirebaseFirestore.instance
                       .collection('users')
@@ -1534,23 +1517,22 @@ class _EventCard extends StatelessWidget {
                   },
                 ),
                 const Spacer(),
-                // Delete button
                 TextButton.icon(
                   onPressed: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
-                      builder: (context) => AlertDialog(
+                      builder: (ctx) => AlertDialog(
                         title: const Text('Delete Event'),
                         content: Text(
                           'Are you sure you want to delete "$title"?',
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
+                            onPressed: () => Navigator.of(ctx).pop(false),
                             child: const Text('Cancel'),
                           ),
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
+                            onPressed: () => Navigator.of(ctx).pop(true),
                             child: const Text(
                               'Delete',
                               style: TextStyle(color: Colors.red),
@@ -1603,6 +1585,7 @@ class _EventCard extends StatelessWidget {
 class CreateEventScreen extends StatefulWidget {
   final String houseId;
   const CreateEventScreen({super.key, required this.houseId});
+
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
 }
