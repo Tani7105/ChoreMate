@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -111,9 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
         password: passwordController.text,
       );
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() => error = e.message);
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -121,11 +123,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('ChoreMate')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 40),
+            Image.asset('assets/logo.png', height: 120),
+            const SizedBox(height: 32),
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -225,11 +230,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() => error = e.message);
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -506,7 +513,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
     } catch (e) {
       setState(() => error = e.toString());
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -603,14 +610,14 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
       Navigator.of(context).pop();
     } catch (e) {
       String message = e.toString();
-      if (message.contains('not-found')) {
+      if (message.contains('not-found'))
         message = 'Invalid join code. Please check and try again.';
-      } else if (message.contains('already-exists')) {
+      else if (message.contains('already-exists'))
         message = 'You are already a member of this house.';
-      }
+      if (!mounted) return;
       setState(() => error = message);
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -892,30 +899,7 @@ class _ChoreCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(assignedTo)
-                  .get(),
-              builder: (context, snapshot) {
-                String displayName = assignedTo;
-                if (snapshot.hasData && snapshot.data!.exists) {
-                  final userData =
-                      snapshot.data!.data() as Map<String, dynamic>?;
-                  displayName = userData?['displayName'] ?? assignedTo;
-                }
-                return Row(
-                  children: [
-                    Icon(Icons.person, size: 14, color: Colors.grey[500]),
-                    const SizedBox(width: 4),
-                    Text(
-                      displayName,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
-                  ],
-                );
-              },
-            ),
+            _buildAssignedTo(context, assignedTo),
             const SizedBox(height: 2),
             Row(
               children: [
@@ -968,6 +952,48 @@ class _ChoreCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildAssignedTo(BuildContext context, String assignedTo) {
+    if (assignedTo == 'anyone') {
+      return Row(
+        children: [
+          Icon(Icons.group, size: 14, color: Colors.teal[500]),
+          const SizedBox(width: 4),
+          Text(
+            'Anyone',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.teal[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(assignedTo)
+          .get(),
+      builder: (context, snapshot) {
+        String displayName = assignedTo;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          displayName = userData?['displayName'] ?? assignedTo;
+        }
+        return Row(
+          children: [
+            Icon(Icons.person, size: 14, color: Colors.grey[500]),
+            const SizedBox(width: 4),
+            Text(
+              displayName,
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 // ============================================================
@@ -1007,11 +1033,14 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
           .map((m) => Map<String, dynamic>.from(m as Map))
           .toList();
       setState(() {
-        members = memberList;
+        members = [
+          {'uid': 'anyone', 'displayName': 'Anyone (first available)'},
+          ...memberList,
+        ];
         final currentUid = FirebaseAuth.instance.currentUser?.uid;
         selectedMemberId = members.any((m) => m['uid'] == currentUid)
             ? currentUid
-            : (members.isNotEmpty ? members.first['uid'] as String : null);
+            : members.first['uid'] as String;
       });
     } catch (e) {
       setState(() => error = 'Error loading members');
@@ -1055,9 +1084,10 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
       ).showSnackBar(const SnackBar(content: Text('Chore created!')));
       Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -1192,11 +1222,20 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
 }
 
 // ============================================================
-// EVENTS TAB
+// EVENTS TAB — Calendar view with event list
 // ============================================================
-class EventsTab extends StatelessWidget {
+class EventsTab extends StatefulWidget {
   final String houseId;
   const EventsTab({super.key, required this.houseId});
+
+  @override
+  State<EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends State<EventsTab> {
+  DateTime _focusedDay = DateTime.now();
+  DateTime _selectedDay = DateTime.now();
+  CalendarFormat _calendarFormat = CalendarFormat.month;
 
   @override
   Widget build(BuildContext context) {
@@ -1205,7 +1244,7 @@ class EventsTab extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('houses')
-            .doc(houseId)
+            .doc(widget.houseId)
             .collection('events')
             .orderBy('startDate')
             .snapshots(),
@@ -1215,77 +1254,87 @@ class EventsTab extends StatelessWidget {
           if (snapshot.hasError)
             return Center(child: Text('Error: ${snapshot.error}'));
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.event, size: 64, color: Colors.grey[300]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No events yet',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 18),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap + to create one',
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
-                ],
-              ),
-            );
+
+          // Build map of date -> events
+          final Map<DateTime, List<QueryDocumentSnapshot>> eventsByDay = {};
+          for (final doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            if (data['startDate'] is Timestamp) {
+              final date = (data['startDate'] as Timestamp).toDate();
+              final dayKey = DateTime(date.year, date.month, date.day);
+              eventsByDay[dayKey] ??= [];
+              eventsByDay[dayKey]!.add(doc);
+            }
           }
-          final now = DateTime.now();
-          final upcoming = docs.where((d) {
-            final data = d.data() as Map<String, dynamic>;
-            if (data['startDate'] is Timestamp)
-              return (data['startDate'] as Timestamp).toDate().isAfter(
-                now.subtract(const Duration(days: 1)),
-              );
-            return true;
-          }).toList();
-          final past = docs.where((d) {
-            final data = d.data() as Map<String, dynamic>;
-            if (data['startDate'] is Timestamp)
-              return (data['startDate'] as Timestamp).toDate().isBefore(
-                now.subtract(const Duration(days: 1)),
-              );
-            return false;
-          }).toList();
-          return ListView(
-            padding: const EdgeInsets.all(16),
+
+          final selectedDayKey = DateTime(
+            _selectedDay.year,
+            _selectedDay.month,
+            _selectedDay.day,
+          );
+          final selectedEvents = eventsByDay[selectedDayKey] ?? [];
+
+          return Column(
             children: [
-              if (upcoming.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Upcoming (${upcoming.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              TableCalendar(
+                firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                lastDay: DateTime.now().add(const Duration(days: 365)),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) =>
+                    setState(() => _calendarFormat = format),
+                onDaySelected: (selectedDay, focusedDay) => setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                }),
+                onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+                eventLoader: (day) =>
+                    eventsByDay[DateTime(day.year, day.month, day.day)] ?? [],
+                calendarStyle: CalendarStyle(
+                  todayDecoration: BoxDecoration(
+                    color: Colors.teal.shade200,
+                    shape: BoxShape.circle,
                   ),
-                ),
-                ...upcoming.map(
-                  (doc) =>
-                      _EventCard(doc: doc, houseId: houseId, isPast: false),
-                ),
-                const SizedBox(height: 24),
-              ],
-              if (past.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Past (${past.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[500],
-                    ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Colors.teal,
+                    shape: BoxShape.circle,
                   ),
+                  markerDecoration: BoxDecoration(
+                    color: Colors.teal.shade700,
+                    shape: BoxShape.circle,
+                  ),
+                  markerSize: 6,
+                  markersMaxCount: 3,
                 ),
-                ...past.map(
-                  (doc) => _EventCard(doc: doc, houseId: houseId, isPast: true),
+                headerStyle: const HeaderStyle(
+                  formatButtonShowsNext: false,
+                  titleCentered: true,
                 ),
-              ],
+              ),
+              const SizedBox(height: 8),
+              Divider(height: 1, color: Colors.grey[300]),
+              Expanded(
+                child: selectedEvents.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No events on this day',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 16,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: selectedEvents.length,
+                        itemBuilder: (context, index) => _EventCard(
+                          doc: selectedEvents[index],
+                          houseId: widget.houseId,
+                          isPast: false,
+                        ),
+                      ),
+              ),
             ],
           );
         },
@@ -1294,7 +1343,7 @@ class EventsTab extends StatelessWidget {
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => CreateEventScreen(houseId: houseId),
+            builder: (_) => CreateEventScreen(houseId: widget.houseId),
           ),
         ),
         child: const Icon(Icons.add),
@@ -1326,43 +1375,18 @@ class _EventCard extends StatelessWidget {
     if (data['startDate'] is Timestamp)
       startDate = (data['startDate'] as Timestamp).toDate();
 
-    String dateStr = '';
-    if (startDate != null) {
-      final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      dateStr =
-          '${weekdays[startDate.weekday - 1]}, ${months[startDate.month - 1]} ${startDate.day}';
-      if (startDate.hour != 0 || startDate.minute != 0) {
-        final hour = startDate.hour > 12
-            ? startDate.hour - 12
-            : (startDate.hour == 0 ? 12 : startDate.hour);
-        final amPm = startDate.hour >= 12 ? 'PM' : 'AM';
-        final minute = startDate.minute.toString().padLeft(2, '0');
-        dateStr += ' at $hour:$minute $amPm';
-      }
+    String timeStr = '';
+    if (startDate != null && (startDate.hour != 0 || startDate.minute != 0)) {
+      final hour = startDate.hour > 12
+          ? startDate.hour - 12
+          : (startDate.hour == 0 ? 12 : startDate.hour);
+      final amPm = startDate.hour >= 12 ? 'PM' : 'AM';
+      final minute = startDate.minute.toString().padLeft(2, '0');
+      timeStr = '$hour:$minute $amPm';
     }
-    final isToday =
-        startDate != null &&
-        startDate.year == DateTime.now().year &&
-        startDate.month == DateTime.now().month &&
-        startDate.day == DateTime.now().day;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isPast ? Colors.grey[50] : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1370,127 +1394,37 @@ class _EventCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPast
-                        ? Colors.grey[200]
-                        : (isToday ? Colors.teal : Colors.teal.shade50),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      if (startDate != null) ...[
-                        Text(
-                          '${startDate.day}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: isPast
-                                ? Colors.grey[500]
-                                : (isToday ? Colors.white : Colors.teal[700]),
-                          ),
-                        ),
-                        Text(
-                          [
-                            'Jan',
-                            'Feb',
-                            'Mar',
-                            'Apr',
-                            'May',
-                            'Jun',
-                            'Jul',
-                            'Aug',
-                            'Sep',
-                            'Oct',
-                            'Nov',
-                            'Dec',
-                          ][startDate.month - 1],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isPast
-                                ? Colors.grey[500]
-                                : (isToday ? Colors.white : Colors.teal[700]),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isPast ? Colors.grey[500] : null,
-                              ),
-                            ),
-                          ),
-                          if (isToday)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.teal,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'Today',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      if (dateStr.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey[500],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              dateStr,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
+                if (timeStr.isNotEmpty)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        timeStr,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
               ],
             ),
             if (description.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 description,
-                style: TextStyle(
-                  color: isPast ? Colors.grey[400] : Colors.grey[700],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
             ],
             const SizedBox(height: 8),
@@ -1645,9 +1579,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       ).showSnackBar(const SnackBar(content: Text('Event created!')));
       Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       setState(() => error = e.toString());
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -2014,10 +1949,24 @@ class _ContactsSection extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Shared Contacts (${contacts.length})',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Shared Contacts (${contacts.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.add_circle_outline,
+                    color: Colors.teal,
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateContactScreen(houseId: houseId),
+                    ),
                   ),
                 ),
               ],
@@ -2122,6 +2071,148 @@ class _ContactsSection extends StatelessWidget {
       default:
         return Icons.phone;
     }
+  }
+}
+
+// ============================================================
+// CREATE CONTACT SCREEN
+// ============================================================
+class CreateContactScreen extends StatefulWidget {
+  final String houseId;
+  const CreateContactScreen({super.key, required this.houseId});
+
+  @override
+  State<CreateContactScreen> createState() => _CreateContactScreenState();
+}
+
+class _CreateContactScreenState extends State<CreateContactScreen> {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  String selectedLabel = 'other';
+  String? error;
+  bool isLoading = false;
+  final labelOptions = [
+    'landlord',
+    'plumber',
+    'electrician',
+    'utility',
+    'other',
+  ];
+
+  Future<void> _createContact() async {
+    if (nameController.text.trim().isEmpty) {
+      setState(() => error = 'Contact name is required');
+      return;
+    }
+    if (phoneController.text.trim().isEmpty) {
+      setState(() => error = 'Phone number is required');
+      return;
+    }
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
+    try {
+      await FirebaseFunctions.instance.httpsCallable('addContact').call({
+        'houseId': widget.houseId,
+        'name': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
+        'label': selectedLabel,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Contact added!')));
+      Navigator.of(context).pop();
+    } catch (e) {
+      String message = e.toString();
+      if (message.contains('permission-denied'))
+        message = 'Only the house rep can add contacts.';
+      if (!mounted) return;
+      setState(() => error = message);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Add Contact')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Contact Name',
+                hintText: 'e.g. Bob the Plumber',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                hintText: 'e.g. 555-123-4567',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+            Text('Label', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[400]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: selectedLabel,
+                  isExpanded: true,
+                  items: labelOptions
+                      .map(
+                        (l) => DropdownMenuItem<String>(
+                          value: l,
+                          child: Text(l[0].toUpperCase() + l.substring(1)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) =>
+                      setState(() => selectedLabel = val ?? 'other'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(error!, style: const TextStyle(color: Colors.red)),
+              ),
+            SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: isLoading ? null : _createContact,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Add Contact', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

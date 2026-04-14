@@ -44,9 +44,13 @@ export const createHouse = onCall(async (request) => {
     joinedAt: FieldValue.serverTimestamp(),
   });
 
-  batch.update(db.collection("users").doc(request.auth.uid), {
-    houseIds: FieldValue.arrayUnion(houseRef.id),
-  });
+  batch.set(
+    db.collection("users").doc(request.auth.uid),
+    {
+      houseIds: FieldValue.arrayUnion(houseRef.id),
+    },
+    { merge: true }
+  );
 
   await batch.commit();
 
@@ -168,7 +172,7 @@ export const createChore = onCall(async (request) => {
 
   const { houseId, name, assignedTo, dueDate, recurrence } = request.data;
 
-  if (!houseId || !name || !assignedTo || !dueDate) {
+  if (!houseId || !name || !dueDate) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
@@ -191,7 +195,7 @@ export const createChore = onCall(async (request) => {
 
   await choreRef.set({
     name: name,
-    assignedTo: assignedTo,
+    assignedTo: assignedTo || "anyone",
     dueDate: new Date(dueDate),
     recurrence: recurrence || "none",
     completed: false,
