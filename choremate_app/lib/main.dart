@@ -7,10 +7,25 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'firebase_options.dart';
 
+// App color constants
+const Color kPrimary = Color(0xFF8BB0D4);
+const Color kPrimaryDark = Color(0xFF5A8AB5);
+const Color kPrimaryMedium = Color(0xFF7BA0C8);
+Color kPrimaryLight = const Color(0xFF8BB0D4).withOpacity(0.15);
+Color kPrimaryFaded = const Color(0xFF8BB0D4).withOpacity(0.1);
+Color kPrimaryHalf = const Color(0xFF8BB0D4).withOpacity(0.5);
+const Color kAccent = Color(0xFFE8843C);
+const Color kAccentLight = Color(0xFFF0DCC8);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Using real Firebase — no emulators needed
+
+  // Disable persistence to prevent crashes on simulator
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+  );
+
   runApp(const ChoreMateApp());
 }
 
@@ -23,7 +38,7 @@ class ChoreMateApp extends StatelessWidget {
       title: 'ChoreMate',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(seedColor: kPrimary),
         useMaterial3: true,
       ),
       home: const AuthGate(),
@@ -129,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            Image.asset('assets/logo.png', height: 300),
+            Image.asset('assets/logo.png', height: 120),
             const SizedBox(height: 32),
             TextField(
               controller: emailController,
@@ -250,11 +265,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 24),
-            Icon(
-              Icons.person_add,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            const Icon(Icons.person_add, size: 64, color: kPrimary),
             const SizedBox(height: 24),
             Text(
               'Create your account',
@@ -313,7 +324,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : signUp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -356,11 +367,7 @@ class HouseSelectionScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.home_rounded,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            const Icon(Icons.home_rounded, size: 80, color: kPrimary),
             const SizedBox(height: 24),
             Text(
               'Welcome to ChoreMate!',
@@ -391,7 +398,7 @@ class HouseSelectionScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -470,7 +477,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
+                  color: kPrimaryLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -555,7 +562,7 @@ class _CreateHouseScreenState extends State<CreateHouseScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : createHouse,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -630,11 +637,7 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-            Icon(
-              Icons.vpn_key_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            const Icon(Icons.vpn_key_rounded, size: 64, color: kPrimary),
             const SizedBox(height: 24),
             Text(
               'Enter your house code',
@@ -673,7 +676,7 @@ class _JoinHouseScreenState extends State<JoinHouseScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : joinHouse,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -713,6 +716,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: tabs[_currentIndex],
       bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFFD6E4F0),
+        indicatorColor: const Color(0xFFB8D4E8),
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => setState(() => _currentIndex = index),
         destinations: const [
@@ -736,7 +741,12 @@ class ChoresTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chores')),
+      appBar: AppBar(
+        title: const Text('Chores'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('houses')
@@ -816,13 +826,14 @@ class ChoresTab extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: kAccent,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => CreateChoreScreen(houseId: houseId),
           ),
         ),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -864,7 +875,7 @@ class _ChoreCard extends StatelessWidget {
           icon: Icon(
             completed ? Icons.check_circle : Icons.circle_outlined,
             color: completed
-                ? Colors.teal
+                ? kPrimary
                 : (isOverdue ? Colors.red : Colors.grey[400]),
             size: 28,
           ),
@@ -926,20 +937,17 @@ class _ChoreCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.teal.withOpacity(0.1),
+                      color: kPrimaryFaded,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.repeat, size: 12, color: Colors.teal[700]),
+                        Icon(Icons.repeat, size: 12, color: kPrimaryDark),
                         const SizedBox(width: 4),
                         Text(
                           recurrence,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.teal[700],
-                          ),
+                          style: TextStyle(fontSize: 11, color: kPrimaryDark),
                         ),
                       ],
                     ),
@@ -957,13 +965,13 @@ class _ChoreCard extends StatelessWidget {
     if (assignedTo == 'anyone') {
       return Row(
         children: [
-          Icon(Icons.group, size: 14, color: Colors.teal[500]),
+          Icon(Icons.group, size: 14, color: kPrimary),
           const SizedBox(width: 4),
           Text(
             'Anyone',
             style: TextStyle(
               fontSize: 13,
-              color: Colors.teal[600],
+              color: kPrimaryMedium,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1094,7 +1102,11 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Chore')),
+      appBar: AppBar(
+        title: const Text('Chores'),
+        backgroundColor: const Color(0xFFD6E4F0),
+      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -1203,7 +1215,7 @@ class _CreateChoreScreenState extends State<CreateChoreScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : _createChore,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -1240,7 +1252,12 @@ class _EventsTabState extends State<EventsTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Events')),
+      appBar: AppBar(
+        title: const Text('Events'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
+
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('houses')
@@ -1255,7 +1272,6 @@ class _EventsTabState extends State<EventsTab> {
             return Center(child: Text('Error: ${snapshot.error}'));
           final docs = snapshot.data!.docs;
 
-          // Build map of date -> events
           final Map<DateTime, List<QueryDocumentSnapshot>> eventsByDay = {};
           for (final doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
@@ -1293,15 +1309,15 @@ class _EventsTabState extends State<EventsTab> {
                     eventsByDay[DateTime(day.year, day.month, day.day)] ?? [],
                 calendarStyle: CalendarStyle(
                   todayDecoration: BoxDecoration(
-                    color: Colors.teal.shade200,
+                    color: kPrimaryHalf,
                     shape: BoxShape.circle,
                   ),
                   selectedDecoration: const BoxDecoration(
-                    color: Colors.teal,
+                    color: kPrimary,
                     shape: BoxShape.circle,
                   ),
                   markerDecoration: BoxDecoration(
-                    color: Colors.teal.shade700,
+                    color: kPrimaryDark,
                     shape: BoxShape.circle,
                   ),
                   markerSize: 6,
@@ -1340,13 +1356,14 @@ class _EventsTabState extends State<EventsTab> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: kAccent,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => CreateEventScreen(houseId: widget.houseId),
           ),
         ),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -1595,7 +1612,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     final minute = selectedTime.minute.toString().padLeft(2, '0');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Event')),
+      appBar: AppBar(
+        title: const Text('Create Event'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -1682,7 +1703,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : _createEvent,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -1710,7 +1731,11 @@ class HouseInfoTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('House Info')),
+      appBar: AppBar(
+        title: const Text('House Info'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
       body: FutureBuilder(
         future: FirebaseFunctions.instance.httpsCallable('getHouseInfo').call({
           'houseId': houseId,
@@ -1787,10 +1812,7 @@ class HouseInfoTab extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.rule,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                        const Icon(Icons.rule, color: kPrimary),
                         const SizedBox(width: 8),
                         Text(
                           'House Rules',
@@ -1817,10 +1839,7 @@ class HouseInfoTab extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.people,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                        const Icon(Icons.people, color: kPrimary),
                         const SizedBox(width: 8),
                         Text(
                           'Members (${members.length})',
@@ -1837,17 +1856,13 @@ class HouseInfoTab extends StatelessWidget {
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
+                              backgroundColor: kAccentLight,
                               child: Text(
                                 (member['displayName'] as String)
                                     .substring(0, 1)
                                     .toUpperCase(),
                                 style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
+                                  color: kPrimaryDark,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1880,13 +1895,13 @@ class HouseInfoTab extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.teal.shade50,
+                                  color: kPrimaryLight,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   'Rep',
                                   style: TextStyle(
-                                    color: Colors.teal.shade700,
+                                    color: kPrimaryDark,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1944,10 +1959,7 @@ class _ContactsSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.contacts,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                const Icon(Icons.contacts, color: kPrimary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1958,10 +1970,7 @@ class _ContactsSection extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline,
-                    color: Colors.teal,
-                  ),
+                  icon: const Icon(Icons.add_circle_outline, color: kPrimary),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -2138,7 +2147,11 @@ class _CreateContactScreenState extends State<CreateContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Contact')),
+      appBar: AppBar(
+        title: const Text('Add Contact'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -2201,7 +2214,7 @@ class _CreateContactScreenState extends State<CreateContactScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : _createContact,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: kAccent,
                   foregroundColor: Colors.white,
                 ),
                 child: isLoading
@@ -2258,7 +2271,11 @@ class ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: kAccent,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -2266,13 +2283,13 @@ class ProfileTab extends StatelessWidget {
             const SizedBox(height: 24),
             CircleAvatar(
               radius: 48,
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              backgroundColor: kAccentLight,
               child: Text(
                 (user?.email ?? 'U').substring(0, 1).toUpperCase(),
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: kPrimaryDark,
                 ),
               ),
             ),
